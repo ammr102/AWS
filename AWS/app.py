@@ -7,7 +7,7 @@ app.static_folder = 'static'
 
 # AWS Configuration
 S3_BUCKET = 'files-bucket-project'
-s3 = boto3.client('s3', region_name='us-east-1')
+s3 = boto3.client('s3', region_name='Europe (Paris) eu-west-3')
 
 @app.route('/')
 def index():
