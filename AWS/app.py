@@ -1,33 +1,51 @@
-from flask import Flask, request, render_template, redirect
-import os
+from flask import Flask, render_template, request, redirect
 import boto3
+from botocore.exceptions import NoCredentialsError
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-S3_BUCKET = 'files-bucket-project'
-s3 = boto3.client('s3')
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# تهيئة عميل S3 بدون مفاتيح (يستخدم IAM Role)
+s3 = boto3.client('s3', region_name='us-east-1')
+S3_BUCKET = 'files-bucket-project'  # اسم السلة
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    if request.method == 'POST':
-        f = request.files['file']
-        if f:
-            filename = f.filename
-            f.save(os.path.join(UPLOAD_FOLDER, filename))
-            s3.upload_file(os.path.join(UPLOAD_FOLDER, filename), S3_BUCKET, filename)
-            return redirect('/')
-    objects = s3.list_objects_v2(Bucket=S3_BUCKET)
-    files = []
-    if 'Contents' in objects:
-        files = [obj['Key'] for obj in objects['Contents']]
-    return render_template('index.html', files=files)
+    try:
+        # جلب قائمة الملفات من السلة
+        objects = s3.list_objects_v2(Bucket=S3_BUCKET)
+        files = [obj['Key'] for obj in objects.get('Contents', [])]
+        return render_template('index.html', files=files)
+    except NoCredentialsError:
+        return "خطأ في الأذونات! تأكد من إرفاق دور IAM بمثيل EC2."
 
-@app.route('/download/<filename>')
-def download_file(filename):
-    return redirect(f'https://{S3_BUCKET}.s3.amazonaws.com/{filename}', code=302)
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return redirect('/')
+    
+    file = request.files['file']
+    if file.filename == '':
+        return redirect('/')
+    
+    try:
+        # رفع الملف إلى S3
+        s3.upload_fileobj(
+            file,
+            S3_BUCKET,
+            file.filename,
+            ExtraArgs={'ACL': 'private'}
+        )
+        
+        # إنشاء رابط تحميل مؤقت (صالحة لمدة ساعة)
+        download_url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET, 'Key': file.filename},
+            ExpiresIn=3600
+        )
+        
+        return render_template('success.html', download_url=download_url)
+    except NoCredentialsError:
+        return "خطأ في الأذونات! تأكد من إرفاق دور IAM بمثيل EC2."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
