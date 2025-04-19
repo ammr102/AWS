@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Successful</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>File Uploaded Successfully! 🎉</h1>
+        <p>File Name: <strong>{{ filename }}</strong></p>
+        <p>Download Link (Valid for 1 hour):</p>
+        <a href="{{ download_url }}" class="download-link">{{ download_url }}</a>
+        <p><a href="/" class="home-link">Return to Home</a></p>
+    </div>
+</body>
+</html>
