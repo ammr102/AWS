@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Translator</title>
+</head>
+<body>
+    <h1>Translate Document</h1>
+    <form method="post" enctype="multipart/form-data" action="/translate">
+        <input type="file" name="file" accept=".pdf,.docx" required>
+        <select name="target_lang" required>
+            <option value="ar">Arabic</option>
+            <option value="en">English</option>
+            <option value="fr">French</option>
+        </select>
+        <button type="submit">Translate</button>
+    </form>
+</body>
+</html>
